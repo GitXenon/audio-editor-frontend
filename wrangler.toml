@@ -1,7 +1,0 @@
-name = "worker-typescript-template"
-type = "javascript"
-zone_id = ""
-account_id = ""
-route = ""
-workers_dev = true
-compatibility_date = "2022-05-25"
