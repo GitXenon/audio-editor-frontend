@@ -8,26 +8,31 @@ defineProps({
   }
 })
 
-const audios = ref([{'src': 'https://cdn.freesound.org/previews/24/24930_113878-lq.mp3'}, {'src': 'https://cdn.freesound.org/previews/634/634804_839843-lq.mp3'}, {'src': 'https://cdn.freesound.org/previews/635/635073_9177297-lq.mp3'}])
+const audios = ref<Array<string>>([])
 const currentTrackIndex = ref(0)
 const isPlaying = ref(false)
-const audioCtx = new AudioContext()
+const audioList = ref<Array<HTMLAudioElement>>([])
 
 async function playMusic() {
-  try {
-    await currentMusic.value.play()
-    isPlaying.value = true
-  } catch (err) {
-    isPlaying.value = false
+  if (currentMusic.value !== null) {
+    try {
+      await currentMusic.value.play()
+      isPlaying.value = true
+    } catch (err) {
+      isPlaying.value = false
+    }
   }
 }
 
 function handlePlayButton() {
-  if (currentMusic.value.paused) {
-    playMusic()
-  } else {
-    currentMusic.value.pause()
-    isPlaying.value = false
+  if (currentMusic.value !== null) {
+    console.log(currentMusic.value)
+    if (currentMusic.value.paused) {
+      playMusic()
+    } else {
+      currentMusic.value.pause()
+      isPlaying.value = false
+    }
   }
 }
 
@@ -60,20 +65,23 @@ function recordAudio() {
 function visualize() {
 }
 
-function playSample(audioBuffer: AudioBuffer, time: number) {
-  const sampleSource = audioCtx.createBufferSource()
-  sampleSource.buffer = audioBuffer
-  sampleSource.connect(audioCtx.destination)
-  sampleSource.start(time)
-  return sampleSource
+function addTrackFromFile(event : any) {
+  const file = event.target.files[0]
+  const reader = new FileReader()
+  reader.onloadend = function() {
+    if (typeof reader.result === "string") {
+      audios.value.push(reader.result)
+    }
+  }
+  reader.readAsDataURL(file)
 }
 
 const currentMusic = computed(() => {
-  return audioList.value[currentTrackIndex.value]
-})
-
-const audioList = computed(() => {
-  return document.querySelectorAll("audio")
+  if (audioList.value.length !== 0) {
+    return audioList.value[currentTrackIndex.value]
+  } else {
+    return null
+  }
 })
 </script>
 
@@ -82,9 +90,10 @@ const audioList = computed(() => {
   <button id="play-button" @click="handlePlayButton">{{ isPlaying ? "Pause" : "Play" }}</button>
   <button id="upload-button">Upload</button>
   <button id="record-button" class="record-button" @click="recordAudio">Record</button>
+  <input type="file" @change="addTrackFromFile">
   <div class="box">
     <div v-for="(item, index) in audios" class="audio-card">
-      <audio :src="item.src" @ended="nextTrack" @loadeddata="visualize"></audio>
+      <audio :src="item" @ended="nextTrack" @loadeddata="visualize" ref="audioList"></audio>
       <h4>{{ index }}</h4>
     </div>
   </div>
