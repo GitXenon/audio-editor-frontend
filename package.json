@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "vue": "^3.2.33",
+    "vue-dndrop": "^1.2.7",
     "wavesurfer.js": "^6.2.0"
   },
   "devDependencies": {

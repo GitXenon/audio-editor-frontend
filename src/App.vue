@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
+import { Container, Draggable } from "vue-dndrop"
+import {applyDrag} from "./utils";
 
 defineProps({
   val: {
@@ -8,7 +10,7 @@ defineProps({
   }
 })
 
-const audios = ref<Array<string>>([])
+const audios = ref<Array<{ 'src': string, 'name': string }>>([])
 const currentTrackIndex = ref(0)
 const isPlaying = ref(false)
 const audioList = ref<Array<HTMLAudioElement>>([])
@@ -26,7 +28,6 @@ async function playMusic() {
 
 function handlePlayButton() {
   if (currentMusic.value !== null) {
-    console.log(currentMusic.value)
     if (currentMusic.value.paused) {
       playMusic()
     } else {
@@ -70,10 +71,14 @@ function addTrackFromFile(event : any) {
   const reader = new FileReader()
   reader.onloadend = function() {
     if (typeof reader.result === "string") {
-      audios.value.push(reader.result)
+      audios.value.push({'src': reader.result, 'name': file.name})
     }
   }
   reader.readAsDataURL(file)
+}
+
+function onDrop(dropResult : any) {
+  audios.value = applyDrag(audios.value, dropResult);
 }
 
 const currentMusic = computed(() => {
@@ -88,14 +93,17 @@ const currentMusic = computed(() => {
 <template>
   <h1>Audio App v.0.1</h1>
   <button id="play-button" @click="handlePlayButton">{{ isPlaying ? "Pause" : "Play" }}</button>
-  <button id="upload-button">Upload</button>
   <button id="record-button" class="record-button" @click="recordAudio">Record</button>
   <input type="file" @change="addTrackFromFile">
-  <div class="box">
-    <div v-for="(item, index) in audios" class="audio-card">
-      <audio :src="item" @ended="nextTrack" @loadeddata="visualize" ref="audioList"></audio>
-      <h4>{{ index }}</h4>
-    </div>
+  <div style="overflow-x: auto">
+  <Container @drop="onDrop" class="box" orientation="horizontal" behaviour="contain">
+    <Draggable v-for="audio in audios" class="audio-card">
+      <div class="draggable-item-horizontal">
+        <audio :src="audio.src" @ended="nextTrack" @loadeddata="visualize" ref="audioList"></audio>
+        <h4>{{ audio.name }}</h4>
+      </div>
+    </Draggable>
+  </Container>
   </div>
 </template>
 
@@ -113,6 +121,10 @@ body {
 .record-button {
   background-color: red;
   color: white
+}
+
+.draggable-item-horizontal {
+  padding: 1rem;
 }
 
 .box {
