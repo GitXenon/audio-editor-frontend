@@ -59,8 +59,6 @@ function recordAudio() {
 }
 
 function addTrackFromFile(event: any) {
-  console.log(event);
-  console.log(event.type);
   const file = event.target.files[0];
   const reader = new FileReader();
   reader.onloadend = function () {
@@ -72,6 +70,7 @@ function addTrackFromFile(event: any) {
 }
 
 function onDrop(dropResult: DropResult) {
+  audioList.value = applyDrag(audioList.value, dropResult);
   audios.value = applyDrag(audios.value, dropResult);
 }
 
