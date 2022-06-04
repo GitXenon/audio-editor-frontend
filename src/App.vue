@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { Container, Draggable } from "vue-dndrop";
 import { applyDrag } from "@/utils";
 import type { DropResult } from "@/types/Draggable";
-import PlayButton from "@/components/PlayButton.vue"
+import PlayButton from "@/components/PlayButton.vue";
 import RecordButton from "@/components/RecordButton.vue";
 import UploadButton from "@/components/UploadButton.vue";
 
@@ -14,10 +14,13 @@ defineProps({
   },
 });
 
-const audios = ref<Array<{ audio: HTMLAudioElement; name: string, color: string}>>([]);
+const audios = ref<
+  Array<{ audio: HTMLAudioElement; name: string; color: string }>
+>([]);
 const currentTrackIndex = ref(0);
 const isPlaying = ref(false);
-const colorArray = ["#F94144",
+const colorArray = [
+  "#F94144",
   "#F3722C",
   "#F48C06",
   "#F9C74F",
@@ -27,7 +30,7 @@ const colorArray = ["#F94144",
   "#577590",
   "#277DA1",
   "#7B2CBF",
-]
+];
 
 async function playMusic() {
   if (currentMusic.value !== null) {
@@ -76,9 +79,13 @@ function addTrackFromFile(event: any) {
   const reader = new FileReader();
   reader.onloadend = async function () {
     if (typeof reader.result === "string") {
-      let htmlAudioElement = await new Audio(reader.result)
-      htmlAudioElement.addEventListener("ended", nextTrack)
-      audios.value.push({ audio: htmlAudioElement, name: file.name, color: randomColor() });
+      let htmlAudioElement = await new Audio(reader.result);
+      htmlAudioElement.addEventListener("ended", nextTrack);
+      audios.value.push({
+        audio: htmlAudioElement,
+        name: file.name,
+        color: randomColor(),
+      });
     }
   };
   reader.readAsDataURL(file);
@@ -88,17 +95,17 @@ function onDrop(dropResult: DropResult) {
   currentMusic.value?.pause();
   isPlaying.value = false;
   audios.value = applyDrag(audios.value, dropResult);
-  resetAllTracksToZero()
+  resetAllTracksToZero();
 }
 
 function resetAllTracksToZero() {
   for (let i = 0; i < audios.value.length; i++) {
-    audios.value[i].audio.fastSeek(0)
+    audios.value[i].audio.fastSeek(0);
   }
 }
 
 function randomColor() {
-  return colorArray[Math.floor(Math.random()*colorArray.length)]
+  return colorArray[Math.floor(Math.random() * colorArray.length)];
 }
 
 const currentMusic = computed(() => {
@@ -122,8 +129,11 @@ const currentMusic = computed(() => {
   </div>
   <div class="flex flex-row justify-items-start justify-center gap-y-5 p-2">
     <Container @drop="onDrop" orientation="horizontal" behaviour="contain">
-      <Draggable v-for="audio in audios">
-        <div class="draggable-item-horizontal cursor-move rounded-md h-24 w-48"  :style="{backgroundColor: audio.color}">
+      <Draggable v-for="audio in audios" :key="audio.audio.src">
+        <div
+          class="draggable-item-horizontal cursor-move rounded-md h-24 w-48"
+          :style="{ backgroundColor: audio.color }"
+        >
           <h4 class="text-xs font-mono text-white">{{ audio.name }}</h4>
         </div>
       </Draggable>
