@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { Container, Draggable } from "vue-dndrop";
-import { applyDrag } from "./utils";
-import type { DropResult } from "./types/Draggable";
+import { applyDrag } from "@/utils";
+import type { DropResult } from "@/types/Draggable";
+import PlayButton from "@/components/PlayButton.vue"
+import RecordButton from "@/components/RecordButton.vue";
+import UploadButton from "@/components/UploadButton.vue";
 
 defineProps({
   val: {
@@ -11,10 +14,20 @@ defineProps({
   },
 });
 
-const audios = ref<Array<{ src: string; name: string }>>([]);
+const audios = ref<Array<{ audio: HTMLAudioElement; name: string, color: string}>>([]);
 const currentTrackIndex = ref(0);
 const isPlaying = ref(false);
-const audioList = ref<Array<HTMLAudioElement>>([]);
+const colorArray = ["#F94144",
+  "#F3722C",
+  "#F48C06",
+  "#F9C74F",
+  "#90BE6D",
+  "#43AA8B",
+  "#4D908E",
+  "#577590",
+  "#277DA1",
+  "#7B2CBF",
+]
 
 async function playMusic() {
   if (currentMusic.value !== null) {
@@ -28,7 +41,7 @@ async function playMusic() {
 }
 
 function handlePlayButton() {
-  if (currentMusic.value !== null) {
+  if (currentMusic.value != null) {
     if (currentMusic.value.paused) {
       playMusic();
     } else {
@@ -61,22 +74,36 @@ function recordAudio() {
 function addTrackFromFile(event: any) {
   const file = event.target.files[0];
   const reader = new FileReader();
-  reader.onloadend = function () {
+  reader.onloadend = async function () {
     if (typeof reader.result === "string") {
-      audios.value.push({ src: reader.result, name: file.name });
+      let htmlAudioElement = await new Audio(reader.result)
+      htmlAudioElement.addEventListener("ended", nextTrack)
+      audios.value.push({ audio: htmlAudioElement, name: file.name, color: randomColor() });
     }
   };
   reader.readAsDataURL(file);
 }
 
 function onDrop(dropResult: DropResult) {
-  audioList.value = applyDrag(audioList.value, dropResult);
+  currentMusic.value?.pause();
+  isPlaying.value = false;
   audios.value = applyDrag(audios.value, dropResult);
+  resetAllTracksToZero()
+}
+
+function resetAllTracksToZero() {
+  for (let i = 0; i < audios.value.length; i++) {
+    audios.value[i].audio.fastSeek(0)
+  }
+}
+
+function randomColor() {
+  return colorArray[Math.floor(Math.random()*colorArray.length)]
 }
 
 const currentMusic = computed(() => {
-  if (audioList.value.length !== 0) {
-    return audioList.value[currentTrackIndex.value];
+  if (audios.value.length !== 0) {
+    return audios.value[currentTrackIndex.value].audio;
   } else {
     return null;
   }
@@ -84,53 +111,22 @@ const currentMusic = computed(() => {
 </script>
 
 <template>
-  <h1>Audio App v.0.1</h1>
-  <button id="play-button" @click="handlePlayButton">
-    {{ isPlaying ? "Pause" : "Play" }}
-  </button>
-  <button id="record-button" class="record-button" @click="recordAudio">
-    Record
-  </button>
-  <input type="file" @change="addTrackFromFile" />
-  <div style="overflow-x: auto">
-    <Container
-      @drop="onDrop"
-      class="box"
-      orientation="horizontal"
-      behaviour="contain"
-    >
-      <Draggable v-for="audio in audios" class="audio-card" v-bind:key="audio">
-        <div class="draggable-item-horizontal">
-          <audio :src="audio.src" @ended="nextTrack" ref="audioList"></audio>
-          <h4>{{ audio.name }}</h4>
+  <div class="flex gap-1 place-content-start">
+    <PlayButton id="play-button" @click="handlePlayButton">
+      {{ isPlaying ? "Pause" : "Play" }}
+    </PlayButton>
+    <RecordButton id="record-button" @click="recordAudio">
+      Record
+    </RecordButton>
+    <UploadButton @change="addTrackFromFile" />
+  </div>
+  <div class="flex flex-row justify-items-start justify-center gap-y-5 p-2">
+    <Container @drop="onDrop" orientation="horizontal" behaviour="contain">
+      <Draggable v-for="audio in audios">
+        <div class="draggable-item-horizontal cursor-move rounded-md h-24 w-48"  :style="{backgroundColor: audio.color}">
+          <h4 class="text-xs font-mono text-white">{{ audio.name }}</h4>
         </div>
       </Draggable>
     </Container>
   </div>
 </template>
-
-<style>
-body {
-  font-family: Roboto, sans-serif;
-}
-
-.audio-card {
-  background-color: whitesmoke;
-  flex: 1;
-  text-align: center;
-}
-
-.record-button {
-  background-color: red;
-  color: white;
-}
-
-.draggable-item-horizontal {
-  padding: 1rem;
-}
-
-.box {
-  border: solid;
-  display: flex;
-}
-</style>
