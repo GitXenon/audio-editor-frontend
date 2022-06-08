@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { Container, Draggable } from "vue-dndrop";
+import axios from "axios";
 import { applyDrag } from "@/utils";
 import type { DropResult } from "@/types/Draggable";
 import PlayButton from "@/components/PlayButton.vue";
@@ -14,9 +15,17 @@ defineProps({
   },
 });
 
-const audios = ref<
-  Array<{ audio: HTMLAudioElement; name: string; color: string }>
->([]);
+interface AudioData {
+  data: Array<Audio>
+}
+
+interface Audio {
+  audio: HTMLAudioElement,
+  name: string,
+  color: string
+}
+
+const audios = ref<AudioData>({data: []});
 const currentTrackIndex = ref(0);
 const isPlaying = ref(false);
 const colorArray = [
@@ -55,7 +64,7 @@ function handlePlayButton() {
 }
 
 function nextTrack() {
-  if (audios.value.length > currentTrackIndex.value + 1) {
+  if (audios.value.data.length > currentTrackIndex.value + 1) {
     currentTrackIndex.value++;
     playMusic();
   } else {
@@ -80,8 +89,9 @@ function addTrackFromFile(event: any) {
   reader.onloadend = async function () {
     if (typeof reader.result === "string") {
       let htmlAudioElement = await new Audio(reader.result);
+      postAudioToWorker(JSON.stringify(audios.value))
       htmlAudioElement.addEventListener("ended", nextTrack);
-      audios.value.push({
+      audios.value.data.push({
         audio: htmlAudioElement,
         name: file.name,
         color: randomColor(),
@@ -89,6 +99,19 @@ function addTrackFromFile(event: any) {
     }
   };
   reader.readAsDataURL(file);
+}
+
+function loadAudioFromWorker() {
+  axios.get('https://api.xbuss.ca/audios/01', {headers: {"content-type": "application/json"}})
+      .then(function (response: any) {
+        audios.value = response.data.body
+      }
+  )
+}
+
+function postAudioToWorker(source : string) {
+  let response = axios.post('https://api.xbuss.ca/audios/01', source, {headers: {"content-type": "application/json"}});
+  console.log(response)
 }
 
 function onDrop(dropResult: DropResult) {
@@ -99,8 +122,8 @@ function onDrop(dropResult: DropResult) {
 }
 
 function resetAllTracksToZero() {
-  for (let i = 0; i < audios.value.length; i++) {
-    audios.value[i].audio.fastSeek(0);
+  for (let i = 0; i < audios.value.data.length; i++) {
+    audios.value.data[i].audio.fastSeek(0);
   }
 }
 
@@ -109,8 +132,8 @@ function randomColor() {
 }
 
 const currentMusic = computed(() => {
-  if (audios.value.length !== 0) {
-    return audios.value[currentTrackIndex.value].audio;
+  if (audios.value.data.length !== 0) {
+    return audios.value.data[currentTrackIndex.value].audio;
   } else {
     return null;
   }
@@ -122,6 +145,9 @@ const currentMusic = computed(() => {
     <PlayButton id="play-button" @click="handlePlayButton">
       {{ isPlaying ? "Pause" : "Play" }}
     </PlayButton>
+    <PlayButton id="get-button" @click="loadAudioFromWorker">
+      GET AUDIO
+    </PlayButton>
     <RecordButton id="record-button" @click="recordAudio">
       Record
     </RecordButton>
@@ -129,7 +155,7 @@ const currentMusic = computed(() => {
   </div>
   <div class="flex flex-row justify-items-start justify-center gap-y-5 p-2">
     <Container @drop="onDrop" orientation="horizontal" behaviour="contain">
-      <Draggable v-for="audio in audios" :key="audio.audio.src">
+      <Draggable v-for="audio in audios.data" :key="audio.audio.src">
         <div
           class="draggable-item-horizontal cursor-move rounded-md h-24 w-48"
           :style="{ backgroundColor: audio.color }"
