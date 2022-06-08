@@ -15,6 +15,7 @@ Then, you can rearrange the track in any order you like. When the tracks are in 
 ## Technologies used
 - Vue.js
 - JavaScript
+- TypeScript
 - Tailwind CSS
 - Cloudflare Workers
 - Cloudflare Pages
