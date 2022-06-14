@@ -43,7 +43,7 @@ const colorArray = [
   "#277DA1",
   "#7B2CBF",
 ];
-const roomInput = ref('')
+const roomInput = ref('cloudflare-test')
 
 async function playMusic() {
   if (currentMusic.value !== null) {
