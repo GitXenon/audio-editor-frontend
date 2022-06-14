@@ -16,17 +16,18 @@ defineProps({
 });
 
 interface Audio {
-  audio: HTMLAudioElement,
-  name: string,
-  color: string
+  audio: HTMLAudioElement;
+  name: string;
+  color: string;
 }
 
 interface AudioR2 {
-  audio: string,
-  name: string
+  audio: string;
+  name: string;
+  color: string;
 }
 
-let audiosR2: AudioR2[] = []
+let audiosR2: AudioR2[] = [];
 const audios = ref<Audio[]>([]);
 const currentTrackIndex = ref(0);
 const isPlaying = ref(false);
@@ -52,6 +53,10 @@ async function playMusic() {
       isPlaying.value = false;
     }
   }
+}
+
+function currentID(): string {
+  return window.location.pathname.slice(1);
 }
 
 function handlePlayButton() {
@@ -91,46 +96,56 @@ function addTrackFromFile(event: any) {
   reader.onloadend = async function () {
     if (typeof reader.result === "string") {
       let htmlAudioElement = await new Audio(reader.result);
-      audiosR2.push({audio: reader.result, name: file.name})
-      postAudioToWorker(JSON.stringify(audiosR2))
       htmlAudioElement.addEventListener("ended", nextTrack);
+      let randomlyAssignedColor = randomColor();
       audios.value.push({
         audio: htmlAudioElement,
         name: file.name,
-        color: randomColor(),
+        color: randomlyAssignedColor,
       });
+      audiosR2.push({
+        audio: reader.result,
+        name: file.name,
+        color: randomlyAssignedColor,
+      });
+      postAudioToWorker(JSON.stringify(audiosR2));
     }
   };
   reader.readAsDataURL(file);
 }
 
 function loadAudioFromWorker() {
-  axios.get('https://api.xbuss.ca/audios/01', {headers: {"content-type": "application/json"}})
-      .then(function (response: any) {
-        audiosR2 = response.data
-        audios.value = []
-        for (let i = 0; i < audiosR2.length; i++) {
-          let htmlAudioElement = new Audio(audiosR2[i].audio)
-          htmlAudioElement.addEventListener("ended", nextTrack);
-          audios.value.push({
-            audio: htmlAudioElement,
-            name: audiosR2[i].name,
-            color: randomColor()
-          })
-
-        }
+  axios
+    .get("https://api.xbuss.ca/audios/" + currentID(), {
+      headers: { "content-type": "application/json" },
+    })
+    .then(function (response: any) {
+      audiosR2 = response.data;
+      audios.value = [];
+      for (let i = 0; i < audiosR2.length; i++) {
+        let htmlAudioElement = new Audio(audiosR2[i].audio);
+        htmlAudioElement.addEventListener("ended", nextTrack);
+        audios.value.push({
+          audio: htmlAudioElement,
+          name: audiosR2[i].name,
+          color: audiosR2[i].color,
+        });
       }
-  )
+    });
 }
 
-function postAudioToWorker(source : string) {
-  axios.post('https://api.xbuss.ca/audios/01', source, {headers: {"content-type": "application/json"}});
+function postAudioToWorker(source: string) {
+  axios.post("https://api.xbuss.ca/audios/" + currentID(), source, {
+    headers: { "content-type": "application/json" },
+  });
 }
 
 function onDrop(dropResult: DropResult) {
   currentMusic.value?.pause();
   isPlaying.value = false;
   audios.value = applyDrag(audios.value, dropResult);
+  audiosR2 = applyDrag(audiosR2, dropResult);
+  postAudioToWorker(JSON.stringify(audiosR2));
   resetAllTracksToZero();
 }
 
@@ -161,7 +176,11 @@ const currentMusic = computed(() => {
     <PlayButton id="get-button" @click="loadAudioFromWorker">
       GET AUDIO
     </PlayButton>
-    <RecordButton id="record-button" @click="recordAudio">
+    <RecordButton
+      id="record-button"
+      title="Does not work right now"
+      @click="recordAudio"
+    >
       Record
     </RecordButton>
     <UploadButton @change="addTrackFromFile" />
