@@ -43,7 +43,7 @@ const colorArray = [
   "#277DA1",
   "#7B2CBF",
 ];
-const roomInput = ref('cloudflare-test')
+const roomInput = ref("cloudflare-test");
 
 async function playMusic() {
   if (currentMusic.value !== null) {
@@ -61,11 +61,11 @@ function currentID(): string {
 }
 
 function idIsPresent(): boolean {
-  let match = window.location.pathname.match("/.+")
+  let match = window.location.pathname.match("/.+");
   if (match !== null) {
-    return match.length !== 0
+    return match.length !== 0;
   } else {
-    return false
+    return false;
   }
 }
 
@@ -170,14 +170,14 @@ function randomColor() {
 }
 
 function roomTeleportation() {
-  window.location.pathname = roomInput.value
+  window.location.pathname = roomInput.value;
 }
 
 onMounted(() => {
   if (idIsPresent()) {
-    loadAudioFromWorker()
+    loadAudioFromWorker();
   }
-})
+});
 
 const currentMusic = computed(() => {
   if (audios.value.length !== 0) {
@@ -198,9 +198,9 @@ const currentMusic = computed(() => {
         Fetch audio
       </PlayButton>
       <RecordButton
-          id="record-button"
-          title="Does not work right now"
-          @click="recordAudio"
+        id="record-button"
+        title="Does not work right now"
+        @click="recordAudio"
       >
         Record
       </RecordButton>
@@ -210,8 +210,8 @@ const currentMusic = computed(() => {
       <Container @drop="onDrop" orientation="horizontal" behaviour="contain">
         <Draggable v-for="audio in audios" :key="audio.audio.src">
           <div
-              class="draggable-item-horizontal cursor-move rounded-md h-24 w-48"
-              :style="{ backgroundColor: audio.color }"
+            class="draggable-item-horizontal cursor-move rounded-md h-24 w-48"
+            :style="{ backgroundColor: audio.color }"
           >
             <h4 class="text-xs font-mono text-white">{{ audio.name }}</h4>
           </div>
@@ -220,23 +220,21 @@ const currentMusic = computed(() => {
     </div>
   </div>
   <div class="grid place-content-center" v-else>
-    <p class="py-3 text-base font-normal text-gray-700">Collaborate online across multiple devices on a shared space. To create a new room or join an existing room, enter a room identifier and click 'GO'.</p>
+    <p class="py-3 text-base font-normal text-gray-700">
+      Collaborate online across multiple devices on a shared space. To create a
+      new room or join an existing room, enter a room identifier and click 'GO'.
+    </p>
     <div class="flex flex-auto place-content-center">
-    <input v-model="roomInput" class="
-        form-control
-        px-3
-        py-1.5
-        text-base
-        font-normal
-        text-gray-700
-        bg-white bg-clip-padding
-        border border-solid border-gray-300
-        rounded-l-lg
-        transition
-        ease-in-out
-        m-0
-        focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none">
-    <button class="rounded-r-lg bg-blue-200 px-3 py-1.5 text-gray-700 tet-base font-normal bg-clip-padding"
-    @click="roomTeleportation()">Go</button>
-  </div></div>
+      <input
+        v-model="roomInput"
+        class="form-control px-3 py-1.5 text-base font-normal text-gray-700 bg-white bg-clip-padding border border-solid border-gray-300 rounded-l-lg transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none"
+      />
+      <button
+        class="rounded-r-lg bg-blue-200 px-3 py-1.5 text-gray-700 tet-base font-normal bg-clip-padding"
+        @click="roomTeleportation()"
+      >
+        Go
+      </button>
+    </div>
+  </div>
 </template>
