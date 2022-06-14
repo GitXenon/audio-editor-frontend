@@ -43,6 +43,7 @@ const colorArray = [
   "#277DA1",
   "#7B2CBF",
 ];
+const roomInput = ref('')
 
 async function playMusic() {
   if (currentMusic.value !== null) {
@@ -57,6 +58,15 @@ async function playMusic() {
 
 function currentID(): string {
   return window.location.pathname.slice(1);
+}
+
+function idIsPresent(): boolean {
+  let match = window.location.pathname.match("/.+")
+  if (match !== null) {
+    return match.length !== 0
+  } else {
+    return false
+  }
 }
 
 function handlePlayButton() {
@@ -159,6 +169,10 @@ function randomColor() {
   return colorArray[Math.floor(Math.random() * colorArray.length)];
 }
 
+function roomTeleportation() {
+  window.location.pathname = roomInput.value
+}
+
 const currentMusic = computed(() => {
   if (audios.value.length !== 0) {
     return audios.value[currentTrackIndex.value].audio;
@@ -169,32 +183,54 @@ const currentMusic = computed(() => {
 </script>
 
 <template>
-  <div class="flex gap-1 place-content-start">
-    <PlayButton id="play-button" @click="handlePlayButton">
-      {{ isPlaying ? "Pause" : "Play" }}
-    </PlayButton>
-    <PlayButton id="get-button" @click="loadAudioFromWorker">
-      GET AUDIO
-    </PlayButton>
-    <RecordButton
-      id="record-button"
-      title="Does not work right now"
-      @click="recordAudio"
-    >
-      Record
-    </RecordButton>
-    <UploadButton @change="addTrackFromFile" />
+  <div v-if="idIsPresent()">
+    <div class="flex gap-1 place-content-start">
+      <PlayButton id="play-button" @click="handlePlayButton">
+        {{ isPlaying ? "Pause" : "Play" }}
+      </PlayButton>
+      <PlayButton id="get-button" @click="loadAudioFromWorker">
+        Fetch audio
+      </PlayButton>
+      <RecordButton
+          id="record-button"
+          title="Does not work right now"
+          @click="recordAudio"
+      >
+        Record
+      </RecordButton>
+      <UploadButton @change="addTrackFromFile" />
+    </div>
+    <div class="flex flex-row justify-items-start justify-center gap-y-5 p-2">
+      <Container @drop="onDrop" orientation="horizontal" behaviour="contain">
+        <Draggable v-for="audio in audios" :key="audio.audio.src">
+          <div
+              class="draggable-item-horizontal cursor-move rounded-md h-24 w-48"
+              :style="{ backgroundColor: audio.color }"
+          >
+            <h4 class="text-xs font-mono text-white">{{ audio.name }}</h4>
+          </div>
+        </Draggable>
+      </Container>
+    </div>
   </div>
-  <div class="flex flex-row justify-items-start justify-center gap-y-5 p-2">
-    <Container @drop="onDrop" orientation="horizontal" behaviour="contain">
-      <Draggable v-for="audio in audios" :key="audio.audio.src">
-        <div
-          class="draggable-item-horizontal cursor-move rounded-md h-24 w-48"
-          :style="{ backgroundColor: audio.color }"
-        >
-          <h4 class="text-xs font-mono text-white">{{ audio.name }}</h4>
-        </div>
-      </Draggable>
-    </Container>
-  </div>
+  <div class="grid place-content-center" v-else>
+    <p class="py-3 text-base font-normal text-gray-700">Collaborate online across multiple devices on a shared space. To create a new room or join an existing room, enter a room identifier and click 'GO'.</p>
+    <div class="flex flex-auto place-content-center">
+    <input v-model="roomInput" class="
+        form-control
+        px-3
+        py-1.5
+        text-base
+        font-normal
+        text-gray-700
+        bg-white bg-clip-padding
+        border border-solid border-gray-300
+        rounded-l-lg
+        transition
+        ease-in-out
+        m-0
+        focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none">
+    <button class="rounded-r-lg bg-blue-200 px-3 py-1.5 text-gray-700 tet-base font-normal bg-clip-padding"
+    @click="roomTeleportation()">Go</button>
+  </div></div>
 </template>
