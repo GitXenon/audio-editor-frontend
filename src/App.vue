@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { Container, Draggable } from "vue-dndrop";
 import axios from "axios";
 import { applyDrag } from "@/utils";
@@ -172,6 +172,12 @@ function randomColor() {
 function roomTeleportation() {
   window.location.pathname = roomInput.value
 }
+
+onMounted(() => {
+  if (idIsPresent()) {
+    loadAudioFromWorker()
+  }
+})
 
 const currentMusic = computed(() => {
   if (audios.value.length !== 0) {
