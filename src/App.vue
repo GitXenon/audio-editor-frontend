@@ -28,6 +28,7 @@ interface AudioR2 {
 }
 
 let audiosR2: AudioR2[] = [];
+let websocket: WebSocket | null = null;
 const audios = ref<Audio[]>([]);
 const currentTrackIndex = ref(0);
 const isPlaying = ref(false);
@@ -118,10 +119,24 @@ function addTrackFromFile(event: any) {
         name: file.name,
         color: randomlyAssignedColor,
       });
-      postAudioToWorker(JSON.stringify(audiosR2));
+      sendWebsocket(JSON.stringify(audiosR2));
+      //postAudioToWorker(JSON.stringify(audiosR2));
     }
   };
   reader.readAsDataURL(file);
+}
+
+function webSocketConnection() {
+  websocket = new WebSocket(`ws://localhost:8787/websocket?id=${currentID()}`);
+  websocket.addEventListener('message', event => {
+    console.log(event.data);
+  });
+}
+
+function sendWebsocket(source: string) {
+  if (websocket !== null) {
+    websocket.send(source);
+  }
 }
 
 function loadAudioFromWorker() {
@@ -175,7 +190,7 @@ function roomTeleportation() {
 
 onMounted(() => {
   if (idIsPresent()) {
-    loadAudioFromWorker();
+    webSocketConnection();
   }
 });
 
