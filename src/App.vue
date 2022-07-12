@@ -17,13 +17,16 @@ defineProps({
 
 interface Audio {
   audio: HTMLAudioElement;
-  name: string;
+  filename: string;
+  order: number;
+  R2StorageName: string;
   color: string;
 }
 
 interface AudioR2 {
-  audio: string;
-  name: string;
+  order: number;
+  R2StorageName: string;
+  filename: string;
   color: string;
 }
 
@@ -105,20 +108,26 @@ function addTrackFromFile(event: any) {
   const reader = new FileReader();
   reader.onloadend = async function () {
     if (typeof reader.result === "string") {
-      let htmlAudioElement = await new Audio(reader.result);
-      htmlAudioElement.addEventListener("ended", nextTrack);
+      let htmlAudioElement = new Audio(reader.result);
       let randomlyAssignedColor = randomColor();
+      let order = audios.value.length;
+      let storageName = `${currentID()}/${crypto.randomUUID()}`;
+
+      htmlAudioElement.addEventListener("ended", nextTrack);
       audios.value.push({
         audio: htmlAudioElement,
-        name: file.name,
+        order: order,
+        R2StorageName: storageName,
+        filename: file.name,
         color: randomlyAssignedColor,
       });
       audiosR2.push({
-        audio: reader.result,
-        name: file.name,
+        order: order,
+        R2StorageName: storageName,
+        filename: file.name,
         color: randomlyAssignedColor,
       });
-      postAudioToWorker(JSON.stringify(audiosR2));
+      postAudioToWorker(JSON.stringify(audiosR2), reader.result, storageName);
     }
   };
   reader.readAsDataURL(file);
@@ -129,25 +138,46 @@ function loadAudioFromWorker() {
     .get("https://api.xbuss.ca/audios/" + currentID(), {
       headers: { "content-type": "application/json" },
     })
-    .then(function (response: any) {
-      audiosR2 = response.data;
-      audios.value = [];
-      for (let i = 0; i < audiosR2.length; i++) {
-        let htmlAudioElement = new Audio(audiosR2[i].audio);
-        htmlAudioElement.addEventListener("ended", nextTrack);
-        audios.value.push({
-          audio: htmlAudioElement,
-          name: audiosR2[i].name,
-          color: audiosR2[i].color,
-        });
+    .then(async function (response: any) {
+      if (response.data !== audiosR2) {
+        audiosR2 = response.data;
       }
+      for (let i = 0; i < audiosR2.length; i++) {
+        const index = audios.value.findIndex(
+          (audio) => audio.R2StorageName === audiosR2[i].R2StorageName
+        );
+        if (index === -1) {
+          const { data } = await axios.get(
+            `https://api.xbuss.ca/audios/${audiosR2[i].R2StorageName}`
+          );
+          let htmlAudioElement = new Audio(data);
+          htmlAudioElement.addEventListener("ended", nextTrack);
+          audios.value.push({
+            audio: htmlAudioElement,
+            order: audiosR2[i].order,
+            filename: audiosR2[i].filename,
+            R2StorageName: audiosR2[i].R2StorageName,
+            color: audiosR2[i].color,
+          });
+        }
+      }
+      audios.value.sort(function (a: Audio, b: Audio) {
+        return a.order - b.order;
+      });
     });
 }
 
-function postAudioToWorker(source: string) {
-  axios.post("https://api.xbuss.ca/audios/" + currentID(), source, {
+function postAudioToWorker(
+  audiosR2Json: string,
+  audioSource: string | null,
+  storageName: string | null
+) {
+  axios.post("https://api.xbuss.ca/audios/" + currentID(), audiosR2Json, {
     headers: { "content-type": "application/json" },
   });
+  if (audioSource !== null && storageName !== null) {
+    axios.post("https://api.xbuss.ca/audios/" + storageName, audioSource);
+  }
 }
 
 function onDrop(dropResult: DropResult) {
@@ -155,7 +185,10 @@ function onDrop(dropResult: DropResult) {
   isPlaying.value = false;
   audios.value = applyDrag(audios.value, dropResult);
   audiosR2 = applyDrag(audiosR2, dropResult);
-  postAudioToWorker(JSON.stringify(audiosR2));
+  for (let i = 0; i < audiosR2.length; i++) {
+    audiosR2[i].order = i;
+  }
+  postAudioToWorker(JSON.stringify(audiosR2), null, null);
   resetAllTracksToZero();
 }
 
@@ -213,7 +246,7 @@ const currentMusic = computed(() => {
             class="draggable-item-horizontal cursor-move rounded-md h-24 w-48"
             :style="{ backgroundColor: audio.color }"
           >
-            <h4 class="text-xs font-mono text-white">{{ audio.name }}</h4>
+            <h4 class="text-xs font-mono text-white">{{ audio.filename }}</h4>
           </div>
         </Draggable>
       </Container>
